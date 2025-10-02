@@ -59,7 +59,8 @@ def wifi_login():
     url = "POST url from the inspect element"  # Change Required
     username = "username"
     password = "password"
-    a_value = str(int(datetime.datetime.now().timestamp()))
+    a_value = str(int(datetime.datetime.now().timestamp()))  # Generate dynamic 'a' value, you may refer to the screenshots in the setup.md file
+
 
     payload = {
         "mode": "191",
@@ -129,4 +130,4 @@ if __name__ == "__main__":
         print("❌ No internet connection detected. Proceeding with login attempt.")
         wifi_login()  # Attempt login only if not connected
     
-    view_logs(5)
+    view_logs(5) # Show last 5 login attempts
