@@ -2,9 +2,22 @@ import sqlite3
 import requests
 import datetime
 import re
+import socket 
 
 # Database setup
 DB_NAME = "wifi_log.db"
+
+def check_connectivity(host="8.8.8.8", port=53, timeout=3):
+    """
+    Check for an active internet connection by connecting to a known host.
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((host, port))
+        return True
+    except (socket.error, OSError):
+        return False
 
 def setup_database():
     """Create the database and table if they do not exist."""
@@ -42,10 +55,11 @@ def extract_message(response_text):
 
 def wifi_login():
     """Perform the WiFi login request and log the result."""
+    # As Per setup.md, user needs to modify these values
     url = "POST url from the inspect element"  # Change Required
     username = "username"
     password = "password"
-    a_value = str(int(datetime.datetime.now().timestamp()))  # Generate dynamic 'a' value, you may refer to the screenshots in the setup.md file
+    a_value = str(int(datetime.datetime.now().timestamp()))
 
     payload = {
         "mode": "191",
@@ -107,5 +121,12 @@ def view_logs(limit=5):
 
 if __name__ == "__main__":
     setup_database()  # Ensure the database is set up
-    wifi_login()  # Attempt login
-    view_logs(5)  # Show last 5 login attempts
+
+    print("Checking for internet connectivity...")
+    if check_connectivity():
+        print("✅ Internet connection is already active. No login needed.")
+    else:
+        print("❌ No internet connection detected. Proceeding with login attempt.")
+        wifi_login()  # Attempt login only if not connected
+    
+    view_logs(5)
