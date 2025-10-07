@@ -92,11 +92,20 @@ Log files are stored in the configured log directory with the name `wifi_auto_au
 
 ### **For step-by-step setup instructions, please refer to [setup.md](https://github.com/01bps/WiFi-Auto-Auth/blob/main/setup.md)**
 
+
 ## **Security Notes**
 - Credentials are securely stored in an SQLite database within your home directory.
 - No sensitive data is transmitted except during the login request.
 - Passwords are masked in logs for security.
 - Login attempts are logged in SQLite, and old logs are automatically deleted after reboot
+
+## **Updated Security Notes**
+
+- Passwords in `config.json` (WiFi and dashboard) are now automatically encrypted using Fernet symmetric encryption on first run. Plaintext passwords are replaced with encrypted values; already encrypted passwords are left unchanged.
+- The encryption key is stored in `config/secret.key` and is used for both encryption and decryption.
+- Passwords are only decrypted in memory for login/authentication; they remain encrypted in the config file and database.
+- The script never re-encrypts already encrypted passwords, preventing multiple encryption layers.
+- Encryption is triggered when you run any command that loads the config (e.g., `--login`, `--dashboard`).
 
 
 # **License:**

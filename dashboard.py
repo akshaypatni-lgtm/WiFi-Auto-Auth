@@ -14,8 +14,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 import uvicorn
+
 import secrets
 from pathlib import Path
+from cryptography.fernet import Fernet
 
 # Import existing logging configuration
 try:
@@ -30,9 +32,26 @@ except ImportError:
 CONFIG_PATH = "config.json"
 DB_NAME = "wifi_log.db"
 
-# Load configuration
+
+SECRET_KEY_PATH = "config/secret.key"
+def get_or_create_secret_key():
+    if os.path.exists(SECRET_KEY_PATH):
+        with open(SECRET_KEY_PATH, "rb") as f:
+            return f.read()
+    key = Fernet.generate_key()
+    os.makedirs(os.path.dirname(SECRET_KEY_PATH), exist_ok=True)
+    with open(SECRET_KEY_PATH, "wb") as f:
+        f.write(key)
+    return key
+
+def decrypt_if_encrypted(value, fernet):
+    try:
+        return fernet.decrypt(value.encode()).decode()
+    except Exception:
+        return value
+
 def load_dashboard_config():
-    """Load dashboard configuration from config.json"""
+    """Load dashboard configuration from config.json and decrypt password if needed"""
     if not os.path.exists(CONFIG_PATH):
         # Use default configuration if config.json doesn't exist
         return {
@@ -42,18 +61,20 @@ def load_dashboard_config():
             "password": "admin123",
             "secret_key": secrets.token_urlsafe(32)
         }
-    
     try:
         with open(CONFIG_PATH, "r") as f:
             config = json.load(f)
-        
-        return config.get("dashboard", {
+        dash = config.get("dashboard", {
             "host": "127.0.0.1",
             "port": 8000,
             "username": "admin",
             "password": "admin123",
             "secret_key": secrets.token_urlsafe(32)
         })
+        key = get_or_create_secret_key()
+        fernet = Fernet(key)
+        dash["password"] = decrypt_if_encrypted(dash["password"], fernet)
+        return dash
     except (json.JSONDecodeError, KeyError):
         logger.warning("Invalid config.json, using default dashboard configuration")
         return {

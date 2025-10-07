@@ -8,5 +8,6 @@
     "port": 8000,
     "username": "admin",
     "password": "admin123"
-  }
+  },
+  "_note": "Passwords should be entered in plaintext. They will be encrypted automatically on first run using Fernet symmetric encryption. Do not manually edit encrypted values."
 }
