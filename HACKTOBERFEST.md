@@ -49,6 +49,8 @@ Keep Adding your contribution in the below template,One after the other:
 
 **Files Changed:** `wifi_auto_login.py`
 
+---
+
 ## 🙏 Thank You!
 
 Every contribution makes this project better. We appreciate you!
