@@ -2,6 +2,7 @@ import sqlite3
 import requests
 import datetime
 import re
+import socket 
 import argparse
 import json
 import os
@@ -44,6 +45,22 @@ PRODUCT_TYPE = None
 
 # --- DATABASE SETUP ---
 DB_NAME = "wifi_log.db"
+
+def check_connectivity(host="8.8.8.8", port=53, timeout=3):
+    """
+    Check for an active internet connection by connecting to a known host.
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((host, port))
+        return True
+    except (socket.error, OSError):
+        return False
+# Initialize logging
+from config.logging_config import setup_logging_from_env, get_logger
+setup_logging_from_env()
+logger = get_logger(__name__)
 
 def setup_database():
     """Create the database and table if they do not exist."""
@@ -102,6 +119,18 @@ def extract_message(response_text):
 # --- MAIN WIFI LOGIN FUNCTION ---
 def wifi_login(network_name=None):
     """Perform the WiFi login request and log the result."""
+    # As Per setup.md, user needs to modify these values
+    url = "POST url from the inspect element"  # Change Required
+    username = "username"
+    password = "password"
+    a_value = str(int(datetime.datetime.now().timestamp()))  # Generate dynamic 'a' value, you may refer to the screenshots in the setup.md file
+    # Load config when needed
+    config = load_config()
+    global URL, USERNAME, PASSWORD, PRODUCT_TYPE
+    URL = config["wifi_url"]
+    USERNAME = config["username"]
+    PASSWORD = config["password"]
+    PRODUCT_TYPE = config.get("product_type", "0")
     network_profile_name = "legacy"
     network_ssid = "Unknown"
     
@@ -136,6 +165,7 @@ def wifi_login(network_name=None):
         return
     
     a_value = str(int(datetime.datetime.now().timestamp()))  # Generate dynamic 'a' value
+
 
     payload = {
         "mode": "191",
@@ -519,6 +549,16 @@ def start_dashboard():
         print("❌ Dashboard server not found. Please ensure dashboard.py exists.")
 
 if __name__ == "__main__":
+    setup_database()  # Ensure the database is set up
+
+    print("Checking for internet connectivity...")
+    if check_connectivity():
+        print("✅ Internet connection is already active. No login needed.")
+    else:
+        print("❌ No internet connection detected. Proceeding with login attempt.")
+        wifi_login()  # Attempt login only if not connected
+    
+    view_logs(5) # Show last 5 login attempts
     parser = argparse.ArgumentParser(
         description="A script to automatically log into captive portal WiFi networks with multi-network support."
     )
