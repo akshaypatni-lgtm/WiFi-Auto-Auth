@@ -37,6 +37,20 @@ Keep Adding your contribution in the below template,One after the other:
 
 ---
 
+## Internet Connectivity Check
+**Contributor ID:** singhxabhijeet
+**Issue reference No.:** #11
+
+**What I Changed:**
+- Implemented an internet connectivity check to prevent unnecessary login attempts.
+- Added a `check_connectivity()` function to verify internet access before running the login logic.
+- Updated the script to notify the user and exit gracefully if a connection is already active.
+- Improved user feedback regarding the network status.
+
+**Files Changed:** `wifi_auto_login.py`
+
+---
+
 ## 🙏 Thank You!
 
 Every contribution makes this project better. We appreciate you!
