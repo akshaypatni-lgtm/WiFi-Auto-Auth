@@ -1,3 +1,4 @@
+
 import sqlite3
 import requests
 import datetime
@@ -6,21 +7,71 @@ import socket
 import argparse
 import json
 import os
+from cryptography.fernet import Fernet
 
 
 # --- CONFIGURATION ---
 CONFIG_PATH = "config.json"
 
+SECRET_KEY_PATH = "config/secret.key"
+
+def get_or_create_secret_key():
+    if os.path.exists(SECRET_KEY_PATH):
+        with open(SECRET_KEY_PATH, "rb") as f:
+            return f.read()
+    key = Fernet.generate_key()
+    os.makedirs(os.path.dirname(SECRET_KEY_PATH), exist_ok=True)
+    with open(SECRET_KEY_PATH, "wb") as f:
+        f.write(key)
+    return key
+
+def encrypt_if_plaintext(value, fernet):
+    # If already encrypted, leave as is
+    try:
+        fernet.decrypt(value.encode())
+        return value
+    except Exception:
+        # Not encrypted, encrypt
+        return fernet.encrypt(value.encode()).decode()
+
+def decrypt_if_encrypted(value, fernet):
+    try:
+        return fernet.decrypt(value.encode()).decode()
+    except Exception:
+        return value
+
+
 def load_config():
-    """Load configuration file and return config dict"""
+    """Load configuration file, encrypt plaintext passwords, and return config dict"""
     if not os.path.exists(CONFIG_PATH):
         raise FileNotFoundError(
             "Missing config.json. Please copy config.example.json to config.json and fill in your details."
         )
-    
     with open(CONFIG_PATH, "r") as f:
         config = json.load(f)
-    
+
+    key = get_or_create_secret_key()
+    fernet = Fernet(key)
+
+    updated = False
+    # Encrypt WiFi password if plaintext
+    if "password" in config:
+        orig = config["password"]
+        enc = encrypt_if_plaintext(orig, fernet)
+        if enc != orig:
+            config["password"] = enc
+            updated = True
+    # Encrypt dashboard password if plaintext
+    if "dashboard" in config and "password" in config["dashboard"]:
+        orig = config["dashboard"]["password"]
+        enc = encrypt_if_plaintext(orig, fernet)
+        if enc != orig:
+            config["dashboard"]["password"] = enc
+            updated = True
+    if updated:
+        with open(CONFIG_PATH, "w") as f:
+            json.dump(config, f, indent=2)
+
     return config
 
 # Initialize logging first
@@ -38,10 +89,13 @@ except ImportError as e:
     MULTI_NETWORK_SUPPORT = False
 
 # Global variables - will be loaded when needed
+
 URL = None
 USERNAME = None
 PASSWORD = None
 PRODUCT_TYPE = None
+FERNET_KEY = get_or_create_secret_key()
+FERNET = Fernet(FERNET_KEY)
 
 # --- DATABASE SETUP ---
 DB_NAME = "wifi_log.db"
@@ -103,6 +157,7 @@ def log_attempt(username, password, a, response_status, response_message, networ
     """Log each login attempt in the database."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    # Store encrypted password in DB
     cursor.execute("""
         INSERT INTO login_attempts (timestamp, network_name, network_ssid, username, password, a, response_status, response_message)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -129,7 +184,8 @@ def wifi_login(network_name=None):
     global URL, USERNAME, PASSWORD, PRODUCT_TYPE
     URL = config["wifi_url"]
     USERNAME = config["username"]
-    PASSWORD = config["password"]
+    # Decrypt password for login
+    PASSWORD = decrypt_if_encrypted(config["password"], FERNET)
     PRODUCT_TYPE = config.get("product_type", "0")
     network_profile_name = "legacy"
     network_ssid = "Unknown"
@@ -625,6 +681,8 @@ if __name__ == "__main__":
     if args.setup:
         run_setup_wizard()
     elif args.dashboard:
+        # Trigger config encryption if needed
+        load_config()
         start_dashboard()
     elif args.list_networks:
         list_networks()
@@ -634,7 +692,6 @@ if __name__ == "__main__":
         # For operations that need database/config
         try:
             setup_database()  # Ensure the database is always set up
-            
             if args.login:
                 wifi_login(args.network)
             elif args.view_logs is not None:
