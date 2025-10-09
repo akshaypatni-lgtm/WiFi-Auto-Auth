@@ -1,4 +1,3 @@
-
 # Hacktoberfest 2025 - Our Contributors
 
 This page celebrates everyone who contributed to WiFi-Auto-Auth during Hacktoberfest!
@@ -20,6 +19,22 @@ Show your support by starring this repository!
 ## 🏆 All Contributions
 
 Keep Adding your contribution in the below template,One after the other:
+
+## Implement Password Encryption 
+**Contributor ID:** AnikethBhosale
+**Issue reference No.:** #4
+
+### What I Changed:
+- Integrated Fernet symmetric encryption for WiFi and dashboard passwords in `config.json` for enhanced security
+- Passwords are now automatically encrypted on first run and stored securely in both config and database
+- Added logic to prevent multiple encryption of already encrypted passwords
+- Passwords are only decrypted in memory for login/authentication, never stored or logged in plaintext
+- Updated README with an 'Updated Security Notes' section describing the new encryption workflow
+- Added `cryptography` to `requirements.txt` to document the new dependency
+
+**Files Changed:** `wifi_auto_login.py`, `dashboard.py`, `config.example.json`, `requirements.txt`, `readme.md`
+
+---
 
 ## Professional Logging System Implementation
 **Contributor ID:** cmarchena
